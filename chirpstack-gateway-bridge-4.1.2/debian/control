@@ -1,0 +1,24 @@
+Source: chirpstack-gateway-bridge
+Section: net
+Priority: optional
+Maintainer: Michales Michaloudes <korgie@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               dh-golang,
+               golang-any,
+               ca-certificates,
+               git
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://www.chirpstack.io/
+XS-Go-Import-Path: github.com/chirpstack/chirpstack-gateway-bridge
+
+Package: chirpstack-gateway-bridge
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         adduser
+Built-Using: ${misc:Built-Using}
+Description: ChirpStack Gateway Bridge
+ The ChirpStack Gateway Bridge is a service which converts
+ packet-forwarder protocols into a generic JSON or Protobuf message format
+ which can be consumed by the ChirpStack Network Server.

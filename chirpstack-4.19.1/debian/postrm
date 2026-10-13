@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+case "$1" in
+  purge)
+    rm -rf /var/lib/chirpstack /var/log/chirpstack /etc/chirpstack
+    getent passwd chirpstack >/dev/null && deluser --system chirpstack || true
+    getent group  chirpstack >/dev/null && delgroup --system chirpstack || true
+    ;;
+esac
+exit 0

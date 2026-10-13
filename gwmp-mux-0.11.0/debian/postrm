@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+if [ -d /run/systemd/system ]; then
+    systemctl --system daemon-reload >/dev/null || true
+fi
+
+#DEBHELPER#
+
+if [ "$1" = "purge" ]; then
+    deluser --system gwmp >/dev/null 2>&1 || true
+    delgroup --system --quiet gwmp >/dev/null 2>&1 || true
+    rm -rf /var/lib/gwmp-mux /run/gwmp-mux
+fi
+
+exit 0

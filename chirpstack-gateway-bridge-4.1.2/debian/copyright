@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: chirpstack-gateway-bridge
+Source: https://github.com/chirpstack/chirpstack-gateway-bridge
+
+Files: *
+Copyright: 2015-2026 Orne Brocaar and contributors
+License: MIT

@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+case "$1" in
+  remove|deconfigure) systemctl stop chirpstack.service || true ;;
+esac
+exit 0

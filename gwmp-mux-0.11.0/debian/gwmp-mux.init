@@ -1,0 +1,76 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          gwmp-mux
+# Required-Start:    $network $remote_fs $syslog
+# Required-Stop:     $network $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: LoRa gateway multiplexer
+### END INIT INFO
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="LoRa gateway multiplexer"
+NAME=gwmp-mux
+DAEMON=/usr/lib/gwmp-mux/gwmp-mux-supervise
+PIDFILE=/run/$NAME.pid
+LOGFILE=/var/log/$NAME.log
+RUNDIR=/var/lib/$NAME
+SCRIPTNAME=/etc/init.d/$NAME
+
+REMOTE_HOST="eu1.cloud.thethings.network"
+REMOTE_PORT="1700"
+LOCAL_CLIENT="127.0.0.1:1680"
+BIND_HOST="1700"
+RUN_USER="gwmp"
+RUN_GROUP="dialout"
+
+[ -f /etc/default/rcS ] && . /etc/default/rcS
+[ -f /lib/lsb/init-functions ] && . /lib/lsb/init-functions
+
+resolve_remote() {
+    ip=$(getent ahostsv4 "$REMOTE_HOST" | awk 'NR==1{print $1}')
+    [ -n "$ip" ] || { echo "Cannot resolve $REMOTE_HOST"; return 1; }
+    REMOTE_CLIENT="$ip:$REMOTE_PORT"
+    return 0
+}
+
+do_start() {
+    if [ -s "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+        log_warning_msg "$NAME already running"
+        return 1
+    fi
+    resolve_remote || return 2
+
+    install -d -o "$RUN_USER" -g "$RUN_GROUP" -m 0750 "$RUNDIR"
+    touch "$LOGFILE"
+    chown "$RUN_USER:$RUN_GROUP" "$LOGFILE"
+    chmod 0664 "$LOGFILE"
+
+    start-stop-daemon --start --quiet --background \
+        --make-pidfile --pidfile "$PIDFILE" \
+        --chuid "$RUN_USER:$RUN_GROUP" \
+        --chdir "$RUNDIR" \
+        --exec "$DAEMON" -- \
+        --client "$REMOTE_CLIENT" \
+        --client "$LOCAL_CLIENT" \
+        --host   "$BIND_HOST" \
+        >> "$LOGFILE" 2>&1
+}
+
+do_stop() {
+    start-stop-daemon --stop --quiet --retry=TERM/10/KILL/5 \
+        --pidfile "$PIDFILE" --exec "$DAEMON"
+    rm -f "$PIDFILE"
+}
+
+do_status() {
+    status_of_proc -p "$PIDFILE" "$DAEMON" "$NAME" && exit 0 || exit $?
+}
+
+case "$1" in
+    start)   do_start;  rc=$?; exit $rc ;;
+    stop)    do_stop;   rc=$?; exit $rc ;;
+    restart) do_stop; sleep 2; do_start ;;
+    status)  do_status ;;
+    *)       echo "Usage: $SCRIPTNAME {start|stop|restart|status}" >&2; exit 3 ;;
+esac

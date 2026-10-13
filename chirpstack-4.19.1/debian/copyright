@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: ChirpStack
+Source: https://github.com/chirpstack/chirpstack
+
+Files: *
+Copyright: ChirpStack contributors
+License: MIT

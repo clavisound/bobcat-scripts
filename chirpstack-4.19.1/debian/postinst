@@ -1,0 +1,42 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+  configure)
+    # directories first — adduser wants the home dir to exist
+    mkdir -p /var/lib/chirpstack /var/log/chirpstack
+
+    getent group chirpstack >/dev/null || addgroup --system chirpstack
+
+    getent passwd chirpstack >/dev/null || \
+      adduser --system --ingroup chirpstack --home /var/lib/chirpstack \
+              --no-create-home --disabled-login --disabled-password chirpstack
+
+    chown -R chirpstack:chirpstack /var/lib/chirpstack /var/log/chirpstack
+    chmod 0750 /var/lib/chirpstack /var/log/chirpstack
+
+    # config may or may not be present; don't abort if it isn't
+    if [ -f /etc/chirpstack/chirpstack.toml ]; then
+      chown root:chirpstack /etc/chirpstack/chirpstack.toml
+      chmod 0640 /etc/chirpstack/chirpstack.toml
+    fi
+
+     # --- pg_trgm for PostgreSQL backend (best-effort) ---
+    # Only attempts if the backend appears to be PostgreSQL and psql is
+    # available. Failures are non-fatal: the operator may configure the
+    # DB later.
+    if [ -f /etc/chirpstack/chirpstack.toml ] && \
+       grep -q '^\[postgresql\]' /etc/chirpstack/chirpstack.toml 2>/dev/null; then
+      if command -v psql >/dev/null 2>&1 && \
+         pg_isready -q 2>/dev/null; then
+        # this requires trust auth or an admin role; often fails in practice
+        su postgres -c "psql -d chirpstack -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm'" \
+          2>/dev/null || true
+      fi
+    fi
+
+    systemctl daemon-reload || true
+    ;;
+esac
+
+exit 0

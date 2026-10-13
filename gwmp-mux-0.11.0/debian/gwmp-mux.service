@@ -1,0 +1,24 @@
+[Unit]
+Description=LoRa gateway multiplexer (gwmp-mux)
+Documentation=https://github.com/helium/gwmp-mux
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gwmp
+Group=dialout
+SupplementaryGroups=dialout
+
+RuntimeDirectory=gwmp-mux
+RuntimeDirectoryMode=0750
+
+ExecStart=/usr/lib/gwmp-mux/gwmp-mux-supervise
+
+Restart=always
+RestartSec=3
+TimeoutStopSec=10
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

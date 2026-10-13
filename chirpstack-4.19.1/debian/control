@@ -1,0 +1,45 @@
+Source: chirpstack
+Section: net
+Priority: optional
+Maintainer: Michales Michaloudes <korgie@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ cargo,
+ rustc,
+ pkg-config,
+ libclang-dev,
+ llvm-dev,
+ protobuf-compiler,
+ libprotobuf-dev,
+ libssl-dev,
+ libsqlite3-dev,
+ libpq-dev,
+ nodejs,
+ npm,
+ ca-certificates,
+Build-Depends-Indep:
+Standards-Version: 4.6.2
+Homepage: https://www.chirpstack.io/
+
+Package: chirpstack
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+ libsqlite3-0,
+ libssl3,
+ ca-certificates,
+ adduser,
+ redis-server,
+ mosquitto,
+ postgresql,
+ postgresql-contrib,
+Recommends:
+ redis-tools,
+ mosquitto-clients,
+Suggests:
+ postgresql-client,
+Description: ChirpStack LoRaWAN Network Server
+ ChirpStack is an open-source LoRaWAN Network Server with a built-in
+ web interface. Supports SQLite or PostgreSQL as the database backend,
+ Redis for caching, and MQTT (Mosquitto) for integration.

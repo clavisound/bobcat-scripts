@@ -1,0 +1,24 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cargo build --release --locked
+
+override_dh_auto_install:
+	install -D -m 0755 target/release/gwmp-mux \
+	    debian/gwmp-mux/usr/bin/gwmp-mux
+	install -D -m 0755 debian/gwmp-mux-supervise \
+	    debian/gwmp-mux/usr/lib/gwmp-mux/gwmp-mux-supervise
+	if [ -f debian/gwmp-mux.service ]; then \
+	    install -D -m 0644 debian/gwmp-mux.service \
+	        debian/gwmp-mux/lib/systemd/system/gwmp-mux.service ; \
+	fi
+	if [ -f debian/gwmp-mux.init ]; then \
+	    install -D -m 0755 debian/gwmp-mux.init \
+	        debian/gwmp-mux/etc/init.d/gwmp-mux ; \
+	fi
+
+override_dh_auto_test:
+	# no upstream tests

@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    purge)
+        rm -rf /var/lib/chirpstack-gateway-bridge
+    ;;
+    remove)
+        if [ -x /bin/systemctl ] || [ -x /usr/bin/systemctl ]; then
+            systemctl disable chirpstack-gateway-bridge.service || true
+        fi
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

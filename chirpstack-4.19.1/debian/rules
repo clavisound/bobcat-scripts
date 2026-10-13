@@ -1,0 +1,46 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+export CARGO_HOME = $(CURDIR)/.cargo-home
+
+export PNPM_HOME = $(HOME)/.local/share/pnpm
+export PATH := $(PNPM_HOME):$(HOME)/.local/node/bin:$(HOME)/.local/bin:$(HOME)/go/bin:/usr/local/bin:$(PATH)
+
+export CARGO_PROFILE_RELEASE_LTO = true
+export CARGO_PROFILE_RELEASE_CODEGEN_UNITS = 16
+export CARGO_PROFILE_RELEASE_OPT_LEVEL = 1
+export CARGO_PROFILE_RELEASE_DEBUG = false
+export CARGO_BUILD_JOBS = 1
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+	rm -rf .cargo-home
+	rm -rf ui/build ui/node_modules/.vite
+	cd chirpstack && cargo clean || true
+
+override_dh_auto_configure:
+	# nothing to configure
+
+override_dh_auto_build:
+	# inject allowlist
+	python3 -c "..."
+	# reinstall
+	rm -rf api/grpc-web/node_modules api/grpc-web/pnpm-lock.yaml
+	# ensure protoc is available for the Makefile
+	mkdir -p api/grpc-web/node_modules/grpc-tools/bin
+	ln -sf /usr/bin/protoc api/grpc-web/node_modules/grpc-tools/bin/protoc
+	cd api && make rust
+	cd api && make grpc-web
+	cd ui && pnpm install --frozen-lockfile && pnpm build
+	cd chirpstack && cargo build --release -j 1
+
+override_dh_auto_test:
+	true
+
+override_dh_auto_install:
+	install -D -m 0755 target/release/chirpstack \
+		debian/chirpstack/usr/bin/chirpstack
+	install -D -m 0644 chirpstack/rpm/chirpstack.service \
+		debian/chirpstack/lib/systemd/system/chirpstack.service

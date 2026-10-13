@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        if ! getent group chirpstack >/dev/null; then
+            addgroup --system chirpstack
+        fi
+        if ! getent passwd chirpstack >/dev/null; then
+            adduser --system --ingroup chirpstack --no-create-home \
+                --home /var/lib/chirpstack-gateway-bridge \
+                --shell /usr/sbin/nologin chirpstack
+        fi
+
+        if [ -x /bin/systemctl ] || [ -x /usr/bin/systemctl ]; then
+            systemctl daemon-reload || true
+            systemctl enable chirpstack-gateway-bridge.service || true
+        fi
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

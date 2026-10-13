@@ -1,0 +1,5 @@
+chirpstack (4.19.1) unstable; urgency=medium
+
+  * Native build for arm64 using the SQLite backend.
+
+ -- clv <clv@localhost>  Thu, 16 Sep 2026 12:00:00 +0000

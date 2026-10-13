@@ -1,0 +1,31 @@
+#!/usr/bin/make -f
+
+export PATH := $(HOME)/.local/go/bin:$(PATH)
+export GOROOT := $(HOME)/.local/go
+export GOTOOLCHAIN := local
+export CGO_ENABLED := 0
+export GOFLAGS := -mod=mod
+export GOPROXY := https://proxy.golang.org,direct
+
+export GOPATH := $(CURDIR)/debian/gopath
+export GOCACHE := $(CURDIR)/debian/gocache
+export GOMODCACHE := $(CURDIR)/debian/gopath/pkg/mod
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	@test -x build/chirpstack-gateway-bridge || (echo "ERROR: run ./build.sh first"; false)
+
+override_dh_auto_install:
+	install -D -m 0755 build/chirpstack-gateway-bridge \
+		debian/chirpstack-gateway-bridge/usr/bin/chirpstack-gateway-bridge
+	install -D -m 0640 packaging/files/chirpstack-gateway-bridge.toml \
+		debian/chirpstack-gateway-bridge/etc/chirpstack-gateway-bridge/chirpstack-gateway-bridge.toml
+	install -D -m 0644 packaging/files/chirpstack-gateway-bridge.service \
+		debian/chirpstack-gateway-bridge/lib/systemd/system/chirpstack-gateway-bridge.service
+
+override_dh_auto_clean:
+	rm -rf obj-* debian/gopath debian/gocache
+override_dh_auto_test:
+	@true

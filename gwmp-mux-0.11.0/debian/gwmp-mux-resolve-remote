@@ -1,0 +1,16 @@
+#!/bin/sh
+# Resolve the TTN endpoint and write REMOTE_CLIENT=<ip>:<port> to
+# /run/gwmp-mux/remote.env for systemd to consume.
+set -e
+
+HOST="${GWMP_REMOTE_HOST:-eu1.cloud.thethings.network}"
+PORT="${GWMP_REMOTE_PORT:-1700}"
+
+IP=$(getent ahostsv4 "$HOST" | awk 'NR==1{print $1}')
+[ -n "$IP" ] || { echo "cannot resolve $HOST" >&2; exit 1; }
+
+mkdir -p /run/gwmp-mux
+echo "REMOTE_CLIENT=$IP:$PORT" > /run/gwmp-mux/remote.env
+chmod 0644 /run/gwmp-mux/remote.env
+
+echo "resolved $HOST -> $IP:$PORT"

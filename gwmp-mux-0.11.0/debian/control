@@ -1,0 +1,18 @@
+Source: gwmp-mux
+Section: net
+Priority: optional
+Maintainer: Michales Michaloudes (clavisound) <korgie@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               cargo,
+               rustc,
+               pkg-config
+Standards-Version: 4.6.2
+Homepage: https://github.com/helium/gwmp-mux
+Rules-Requires-Root: no
+
+Package: gwmp-mux
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Gateway MP multiplexer
+ gwmp-mux is a small Rust utility that multiplexes gateway MP streams.
+ Built for Armbian Bookworm on the Bobcat G295 (aarch64).

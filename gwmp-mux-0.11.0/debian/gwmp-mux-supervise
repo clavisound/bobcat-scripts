@@ -1,0 +1,85 @@
+#!/bin/sh
+# Supervisor for gwmp-mux.
+#
+# Jobs:
+#   1. Resolve the upstream TTN endpoint to an IP (gwmp-mux requires IP:port).
+#   2. Keep stdin open, so gwmp-mux does not see EOF and shut itself down.
+#   3. Restart gwmp-mux if it exits for any other reason.
+#   4. Forward SIGTERM/SIGINT to gwmp-mux, so `systemctl stop` works.
+
+PROGNAME=gwmp-mux
+PROG=/usr/bin/$PROGNAME
+
+REMOTE_HOST="${GWMP_REMOTE_HOST:-eu1.cloud.thethings.network}"
+REMOTE_PORT="${GWMP_REMOTE_PORT:-1700}"
+LOCAL_CLIENT="${GWMP_LOCAL_CLIENT:-127.0.0.1:1680}"
+BIND_HOST="${GWMP_BIND_HOST:-1700}"
+
+# Prefer systemd's RuntimeDirectory (/run/gwmp-mux), fall back to /tmp.
+if [ -d /run/gwmp-mux ] && [ -w /run/gwmp-mux ]; then
+    RUNDIR=/run/gwmp-mux
+elif [ -w /run ]; then
+    RUNDIR=/run/gwmp-mux
+else
+    RUNDIR=/tmp/gwmp-mux
+fi
+
+mkdir -p "$RUNDIR" 2>/dev/null || true
+chmod 0700 "$RUNDIR" 2>/dev/null || true
+
+FIFO=$RUNDIR/stdin.fifo
+
+CHILD_PID=
+KEEPER=
+
+on_signal() {
+    if [ -n "$CHILD_PID" ] && kill -0 "$CHILD_PID" 2>/dev/null; then
+        kill -TERM "$CHILD_PID" 2>/dev/null
+        i=0
+        while [ $i -lt 10 ] && kill -0 "$CHILD_PID" 2>/dev/null; do
+            sleep 0.2
+            i=$((i + 1))
+        done
+        kill -KILL "$CHILD_PID" 2>/dev/null
+    fi
+    [ -n "$KEEPER" ] && kill "$KEEPER" 2>/dev/null
+    rm -f "$FIFO"
+    exit 0
+}
+trap on_signal TERM INT HUP
+
+# Create the FIFO fresh
+rm -f "$FIFO"
+if ! mkfifo -m 0600 "$FIFO"; then
+    echo "cannot create FIFO at $FIFO" >&2
+    exit 1
+fi
+
+# Hold the write end open so the read end never sees EOF.
+sleep infinity > "$FIFO" &
+KEEPER=$!
+
+while :; do
+    # Resolve the remote endpoint on every restart, so DNS changes are picked up.
+    REMOTE_IP=$(getent ahostsv4 "$REMOTE_HOST" | awk 'NR==1{print $1}')
+    if [ -z "$REMOTE_IP" ]; then
+        echo "$(date '+%F %T') cannot resolve $REMOTE_HOST, retrying in 10s" >&2
+        sleep 10
+        continue
+    fi
+    REMOTE_CLIENT="$REMOTE_IP:$REMOTE_PORT"
+
+    echo "$(date '+%F %T') resolved $REMOTE_HOST -> $REMOTE_CLIENT" >&2
+
+    "$PROG" \
+        --client "$REMOTE_CLIENT" \
+        --client "$LOCAL_CLIENT" \
+        --host   "$BIND_HOST" \
+        < "$FIFO" &
+    CHILD_PID=$!
+    wait "$CHILD_PID"
+    rc=$?
+    CHILD_PID=
+    echo "$(date '+%F %T') $PROGNAME exited rc=$rc, restarting in 3s" >&2
+    sleep 3
+done

@@ -1,0 +1,44 @@
+#!/bin/sh
+set -e
+
+#DEBHELPER#
+
+# ---------------------------------------------------------------------------
+# Create the runtime user and group on first install
+# ---------------------------------------------------------------------------
+if ! getent group gwmp >/dev/null; then
+    addgroup --system gwmp
+fi
+if ! getent passwd gwmp >/dev/null; then
+    adduser --system --ingroup gwmp --no-create-home \
+            --home /var/lib/gwmp-mux --shell /usr/sbin/nologin gwmp
+fi
+
+# gwmp-mux needs access to the LoRa concentrator tty
+if getent group dialout >/dev/null; then
+    adduser gwmp dialout >/dev/null 2>&1 || true
+fi
+
+# ---------------------------------------------------------------------------
+# systemd: reload, enable, start
+# ---------------------------------------------------------------------------
+if [ -d /run/systemd/system ]; then
+    systemctl --system daemon-reload >/dev/null || true
+    systemctl enable gwmp-mux.service >/dev/null || true
+    systemctl start  gwmp-mux.service >/dev/null || true
+fi
+
+# ---------------------------------------------------------------------------
+# SysV fallback
+# ---------------------------------------------------------------------------
+if [ ! -d /run/systemd/system ]; then
+    install -d -o gwmp -g dialout -m 0750 /var/lib/gwmp-mux
+    if command -v update-rc.d >/dev/null 2>&1; then
+        update-rc.d gwmp-mux defaults >/dev/null || true
+    fi
+    if [ -x /etc/init.d/gwmp-mux ]; then
+        /etc/init.d/gwmp-mux start >/dev/null || true
+    fi
+fi
+
+exit 0

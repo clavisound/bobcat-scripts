@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+if [ -d /run/systemd/system ]; then
+    systemctl --system stop    gwmp-mux.service >/dev/null || true
+    systemctl --system disable gwmp-mux.service >/dev/null || true
+fi
+
+if [ ! -d /run/systemd/system ]; then
+    if [ -x /etc/init.d/gwmp-mux ]; then
+        /etc/init.d/gwmp-mux stop >/dev/null || true
+    fi
+    if command -v update-rc.d >/dev/null 2>&1; then
+        update-rc.d gwmp-mux remove >/dev/null || true
+    fi
+fi
+
+#DEBHELPER#
+
+exit 0
